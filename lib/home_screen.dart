@@ -34,18 +34,32 @@ class _HomeScreenState extends State<HomeScreen> {
     final deviceInfo = DeviceInfoPlugin();
     final connectivity = Connectivity();
 
-    final batteryLvl = await battery.batteryLevel;
-    final batterySt = await battery.batteryState;
+    final int batteryLvl = await battery.batteryLevel;
+    final BatteryState batterySt = await battery.batteryState;
     final android = await deviceInfo.androidInfo;
-    final conn = await connectivity.checkConnectivity();
-    final cpu = await CpuService.getCpuUsage();
+
+    final List<ConnectivityResult> conn = await connectivity
+        .checkConnectivity();
+
+    final double cpu = await CpuService.getCpuUsage();
+
+    String networkStatus;
+    if (conn.contains(ConnectivityResult.wifi)) {
+      networkStatus = "WiFi";
+    } else if (conn.contains(ConnectivityResult.mobile)) {
+      networkStatus = "Mobile Data";
+    } else if (conn.contains(ConnectivityResult.ethernet)) {
+      networkStatus = "Ethernet";
+    } else {
+      networkStatus = "No Network";
+    }
 
     setState(() {
       batteryLevel = batteryLvl;
       batteryState = batterySt.toString().split('.').last;
       deviceModel = android.model;
       androidVersion = android.version.release;
-      network = conn.name;
+      network = networkStatus;
       cpuUsage = cpu;
       totalRam = SysInfo.getTotalPhysicalMemory() ~/ (1024 * 1024);
       freeRam = SysInfo.getFreePhysicalMemory() ~/ (1024 * 1024);
@@ -54,20 +68,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget infoCard(String title, String value) {
     return Card(
-      child: ListTile(title: Text(title), trailing: Text(value)),
+      elevation: 2,
+      child: ListTile(
+        title: Text(title),
+        trailing: Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Device Monitor')),
+      appBar: AppBar(title: const Text('Device Monitor'), centerTitle: true),
       body: RefreshIndicator(
         onRefresh: loadData,
         child: ListView(
           padding: const EdgeInsets.all(12),
           children: [
-            infoCard("Device", deviceModel),
+            infoCard("Device Model", deviceModel),
             infoCard("Android Version", androidVersion),
             infoCard("Battery Level", "$batteryLevel%"),
             infoCard("Battery Status", batteryState),
